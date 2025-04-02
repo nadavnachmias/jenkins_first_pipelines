@@ -16,5 +16,10 @@ def get_time():
 def echo(message):
     return f"You said: {message}"
 
+@app.route('/about')
+def about_page():
+    return "this is server num 1 welcome !"
+
+
 if __name__ == "__main__":
     app.run(debug=True)
