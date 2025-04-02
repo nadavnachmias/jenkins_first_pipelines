@@ -1,51 +1,65 @@
 pipeline {
     agent any
-
     environment {
         IMAGE_NAME = "flask-app-${env.BRANCH_NAME}"
     }
-
     stages {
-        stage('Clean Workspace') {
+        stage('Clean and Prepare') {
             steps {
-                cleanWs()  // Wipes old files before checkout
-            }
-        }
-
-        stage('Force Git Checkout') {
-            steps {
+                cleanWs()
+                // Force fresh clone with full history
                 checkout([
                     $class: 'GitSCM',
                     branches: [[name: "*/${env.BRANCH_NAME}"]],
                     extensions: [
-                        [$class: 'CleanBeforeCheckout'],  // Prevents stale files
-                        [$class: 'LocalBranch'],         // Ensures correct branch
-                        [$class: 'CloneOption', depth: 0, noTags: false, shallow: false]
+                        [$class: 'CloneOption',
+                         depth: 1,  // Shallow clone (faster)
+                         noTags: false,
+                         shallow: true,
+                         timeout: 10],  // Timeout in minutes
+                        [$class: 'CleanBeforeCheckout'],
+                        [$class: 'LocalBranch']
                     ],
-                    userRemoteConfigs: [[url: 'YOUR_REPO_URL']]
+                    gitTool: 'Default',
+                    doGenerateSubmoduleConfigurations: false,
+                    submoduleCfg: []
                 ])
-                // Verify latest commit
-                sh 'git log -1 --pretty=format:"%h - %an, %ar : %s"'
+                sh 'git clean -ffdx'  // Extra cleanup
+            }
+        }
+        
+        stage('Verify Files') {
+            steps {
+                sh '''
+                    echo "Current files:"
+                    ls -la
+                    echo "Dockerfile content:"
+                    cat Dockerfile || echo "No Dockerfile found"
+                '''
             }
         }
 
         stage('Build Docker') {
             steps {
                 script {
-                    echo "Building Docker image for branch: ${env.BRANCH_NAME}"
-                    sh """
-                        docker build --no-cache --pull -t ${IMAGE_NAME} .
-                        echo "----- Dockerfile used -----"
-                        cat Dockerfile  // Debug: Verify correct file
-                    """
+                    try {
+                        sh """
+                            docker build \
+                                --no-cache \
+                                --pull \
+                                --force-rm \
+                                -t ${IMAGE_NAME} .
+                        """
+                    } catch (e) {
+                        error("Docker build failed: ${e}")
+                    }
                 }
             }
         }
     }
-
     post {
         always {
-            sh 'docker system prune -f'  // Clean up unused Docker objects
+            sh 'docker system prune -f --all'
         }
     }
 }
