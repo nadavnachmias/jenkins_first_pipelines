@@ -16,10 +16,9 @@ def get_time():
 def echo(message):
     return f"You said: {message}"
 
-@app.route('/about')
-def about_page():
-    return "this is server num 1 welcome !"
-
+@app.route('/about_git')
+def about_git_page():
+    return "this is a feature for my brand new git branch"
 
 if __name__ == "__main__":
     app.run(debug=True)
