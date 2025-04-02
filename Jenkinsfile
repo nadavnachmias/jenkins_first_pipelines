@@ -2,24 +2,22 @@ pipeline {
     agent any
     
     stages {
-        stage('Build Docker Image') {
+        stage('Build') {
             steps {
                 script {
-                    // Use the branch name as the image tag
-                    def imageTag = "${env.BRANCH_NAME.toLowerCase().replaceAll('[^a-z0-9-]', '-')}"
+                    // Clean workspace first
+                    deleteDir()
                     
+                    // Get branch-safe tag name
+                    def tag = env.BRANCH_NAME.replaceAll('/', '-').toLowerCase()
+                    
+                    // Build and tag Docker image
                     sh """
-                        echo "Building Docker image with tag: ${imageTag}"
-                        docker build -t your-repo/flask-app:${imageTag} .
+                        docker build -t myapp:${tag} .
+                        echo "Successfully built myapp:${tag}"
                     """
                 }
             }
-        }
-    }
-    
-    post {
-        always {
-            sh 'docker system prune -f'  // Clean up unused containers
         }
     }
 }
