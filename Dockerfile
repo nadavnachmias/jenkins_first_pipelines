@@ -4,7 +4,9 @@ WORKDIR /app
 
 COPY . /app
 
-RUN pip install --no-cache-dir -r requirements.txt
+# Install packages directly (no requirements.txt needed)
+RUN pip install --no-cache-dir flask requests
+
 
 # Make port 5000 available to the world outside this container
 EXPOSE 5000
