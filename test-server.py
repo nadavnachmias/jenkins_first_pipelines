@@ -2,10 +2,12 @@
 import unittest
 import requests
 import argparse
+import os
 
-# Set up argument parsing
+# Set up argument parsing with environment variable fallback
 parser = argparse.ArgumentParser()
-parser.add_argument('--url', default='http://localhost:5000', help='Base URL of the Flask app')
+default_url = f"http://localhost:{os.getenv('APP_PORT', '5000')}"  # Use APP_PORT or default to 5000
+parser.add_argument('--url', default=default_url, help='Base URL of the Flask app')
 args = parser.parse_args()
 
 class TestFlaskEndpoints(unittest.TestCase):
@@ -16,7 +18,7 @@ class TestFlaskEndpoints(unittest.TestCase):
         response = requests.get(f"{args.url}/time")
         self.assertEqual(response.status_code, 200)
         self.assertIn("Current time is:", response.text)
-        print("✅ /time endpoint test passed")
+        print(f"✅ /time endpoint test passed (Port: {args.url.split(':')[-1]})")
 
     def test_echo_endpoint(self):
         """Test if /echo returns the correct message."""
@@ -24,16 +26,17 @@ class TestFlaskEndpoints(unittest.TestCase):
         response = requests.get(f"{args.url}/echo/{test_message}")
         self.assertEqual(response.status_code, 200)
         self.assertIn(f"You said: {test_message}", response.text)
-        print("✅ /echo endpoint test passed")
+        print(f"✅ /echo endpoint test passed (Port: {args.url.split(':')[-1]})")
 
     def test_about_git_endpoint(self):
         """Test if /about_git returns the expected string."""
         response = requests.get(f"{args.url}/about_git")
         self.assertEqual(response.status_code, 200)
         self.assertIn("this is a feature for my brand new git branch", response.text)
-        print("✅ /about_git endpoint test passed")
+        print(f"✅ /about_git endpoint test passed (Port: {args.url.split(':')[-1]})")
 
 if __name__ == "__main__":
+    print(f"\n🔍 Testing server at: {args.url}")
     # Run tests and exit with status code (0=success, 1=failure)
     try:
         unittest.main(argv=[''], exit=False)
