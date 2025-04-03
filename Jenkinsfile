@@ -72,6 +72,8 @@ pipeline {
             steps {
                 script {
                     echo "start testing stage use ${env.APP_PORT} as the port"
+                    //  explicitly pass the port:
+                    sh "python3 test-server.py --url http://localhost:${env.APP_PORT}"
                     
                 }
                 
