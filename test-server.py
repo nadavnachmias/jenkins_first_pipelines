@@ -2,6 +2,7 @@
 import unittest
 import requests
 import argparse
+import os
 
 # Set up argument parsing with environment variable fallback
 parser = argparse.ArgumentParser()
