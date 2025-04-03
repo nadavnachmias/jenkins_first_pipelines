@@ -1,22 +1,25 @@
-# Use official Python image
+# Use a base Python image
 FROM python:3.9-slim
 
-# Set working directory
+# Set the working directory inside the container
 WORKDIR /app
 
-# Install dependencies first for caching
+# Copy the requirements.txt file into the container
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
+# Install dependencies in a virtual environment
+RUN python3 -m venv /app/venv && \
+    /app/venv/bin/pip install --no-cache-dir -r requirements.txt
+
+# Copy the rest of your application code into the container
 COPY . .
 
-# Set environment variables
+# Set environment variables for Flask
 ENV FLASK_APP=server.py
 ENV FLASK_ENV=production
 
-# Expose port
+# Expose the port that the app will run on
 EXPOSE 5000
 
-# Run application
-CMD ["flask", "run", "--host", "0.0.0.0", "--port", "5000"]
+# Set the entrypoint to activate the virtual environment and run the Flask app
+CMD ["/app/venv/bin/python", "server.py"]
