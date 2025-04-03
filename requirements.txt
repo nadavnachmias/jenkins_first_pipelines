@@ -1,5 +1,2 @@
-Flask
-pytest
-pytest-flask
-requests
-gunicorn  # Production WSGI server
+flask>=2.0.0
+requests>=2.26.0  # Required for test_server.py
