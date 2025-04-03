@@ -30,7 +30,7 @@ pipeline {
     steps {
         script {
             echo "Running Test Script inside the container..."
-            def testExitCode = sh(script: "docker exec ${CONTAINER_NAME} python test-server.py", returnStatus: true)
+            def testExitCode = sh(script: "docker exec ${CONTAINER_NAME} python3 test-server.py", returnStatus: true)
 
             if (testExitCode == 0) {
                 echo "Tests Passed ✅"
