@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-        // Sanitize branch name for use in image/container names
         IMAGE_NAME = "flask-app-${env.BRANCH_NAME}".replaceAll("[^a-zA-Z0-9-]", "-").toLowerCase()
         CONTAINER_NAME = "flask-container-${env.BRANCH_NAME}".replaceAll("[^a-zA-Z0-9-]", "-").toLowerCase()
     }
@@ -20,26 +19,52 @@ pipeline {
         stage('Run Container') {
             steps {
                 script {
-                    // Find available port starting from 5000
-                    def port = 5000
-                    while(true) {
-                        def occupied = sh(
+                    // Clean up any existing container first
+                    sh """
+                        docker stop ${CONTAINER_NAME} || true
+                        docker rm ${CONTAINER_NAME} || true
+                    """
+                    
+                    // Find first available port starting from 5001
+                    def port = 5001
+                    def foundPort = false
+                    
+                    while(port <= 5100) {
+                        // Check if port is in use by any container
+                        def checkPort = sh(
                             script: "docker ps --format '{{.Ports}}' | grep ':${port}->' || true",
                             returnStatus: true
                         )
-                        if (occupied != 0) break
+                        
+                        // Also check if port is in use on host system
+                        def checkHostPort = sh(
+                            script: "netstat -tuln | grep ':${port} ' || true",
+                            returnStatus: true
+                        )
+                        
+                        if (checkPort != 0 && checkHostPort != 0) {
+                            foundPort = true
+                            break
+                        }
+                        
                         port++
-                        if (port > 5100) error("No available ports")
                     }
                     
+                    if (!foundPort) {
+                        error("No available ports between 5001-5100")
+                    }
+                    
+                    // Run container with the found port
+                    // Note: Internal container port stays 5000, only external host port changes
                     sh """
                         docker run -d \
-                          -p ${port}:${port} \
-                          -e PORT=${port} \
+                          -p ${port}:5000 \
                           --name ${CONTAINER_NAME} \
                           ${IMAGE_NAME}
                     """
-                    echo "Application running on port ${port}"
+                    
+                    echo "Application running on host port ${port} (container port 5000)"
+                    env.APP_PORT = port
                 }
             }
         }
