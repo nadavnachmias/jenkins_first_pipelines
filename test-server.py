@@ -30,7 +30,7 @@ class TestFlaskEndpoints(unittest.TestCase):
         """Test if /about_git returns the expected string."""
         response = requests.get(f"{args.url}/about_git")
         self.assertEqual(response.status_code, 200)
-        self.assertIn("this is a feature for my brand new git branch", response.text)
+        self.assertIn("this is server num 1 welcome !", response.text)
         print("✅ /about_git endpoint test passed")
 
 if __name__ == "__main__":
