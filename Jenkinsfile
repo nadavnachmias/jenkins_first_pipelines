@@ -2,34 +2,26 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "your-dockerhub-username/app-name"
-        DOCKER_CREDENTIALS = "docker-hub-credentials"  // Jenkins credential ID
-        CONTAINER_NAME = "flask_test_server"
+        IMAGE_NAME = "flask-app-${env.BRANCH_NAME}".replaceAll("/", "-").toLowerCase()
+        CONTAINER_NAME = "flask-container-${env.BRANCH_NAME}".replaceAll("/", "-").toLowerCase()
     }
 
     stages {
-        stage('Checkout Code') {
-            steps {
-                git branch: 'main', url: 'https://github.com/your-repo.git'
-            }
-        }
-
         stage('Build Docker Image') {
             steps {
                 script {
-                    sh "docker build -t ${DOCKER_IMAGE}:latest ."
+                    echo "Building Docker Image: ${IMAGE_NAME}"
+                    sh "docker build -t ${IMAGE_NAME} ."
                 }
             }
         }
 
-        stage('Run Server in Docker') {
+        stage('Run Server Container') {
             steps {
                 script {
-                    sh '''
-                    docker stop ${CONTAINER_NAME} || true
-                    docker rm ${CONTAINER_NAME} || true
-                    docker run -d -p 5000:5000 --name ${CONTAINER_NAME} ${DOCKER_IMAGE}:latest
-                    '''
+                    echo "Starting Server Container: ${CONTAINER_NAME}"
+                    sh "docker run -d --rm --name ${CONTAINER_NAME} -p 5000:5000 ${IMAGE_NAME}"
+                    sleep 5 // Wait for the server to start
                 }
             }
         }
@@ -37,51 +29,35 @@ pipeline {
         stage('Run Tests') {
             steps {
                 script {
-                    def testResult = sh(
-                        script: "python3 test-server.py", 
-                        returnStatus: true
-                    )
-
-                    if (testResult != 0) {
-                        error("Tests failed! Stopping pipeline.")
+                    echo "Running Test Script..."
+                    def testExitCode = sh(script: "python test-server.py", returnStatus: true)
+                    
+                    if (testExitCode == 0) {
+                        echo "Tests Passed ✅"
+                    } else {
+                        error("Tests Failed ❌")
                     }
                 }
             }
         }
 
-        stage('Push to Docker Hub') {
+        stage('Cleanup') {
             steps {
                 script {
-                    withDockerRegistry([credentialsId: DOCKER_CREDENTIALS, url: ""]) {
-                        sh "docker push ${DOCKER_IMAGE}:latest"
-                    }
-                }
-            }
-        }
-
-        stage('Deploy Container') {
-            steps {
-                script {
-                    sh '''
-                    docker stop flask_app || true
-                    docker rm flask_app || true
-                    docker run -d -p 5000:5000 --name flask_app ${DOCKER_IMAGE}:latest
-                    '''
+                    echo "Stopping and Cleaning up..."
+                    sh "docker stop ${CONTAINER_NAME} || true"
+                    sh "docker rmi ${IMAGE_NAME} || true"
                 }
             }
         }
     }
-
+    
     post {
-        always {
-            sh "docker stop ${CONTAINER_NAME} || true"
-            sh "docker rm ${CONTAINER_NAME} || true"
-        }
         success {
-            echo "✅ Deployment successful!"
+            echo "Pipeline completed successfully 🚀"
         }
         failure {
-            echo "❌ Deployment failed!"
+            echo "Pipeline failed ❌"
         }
     }
 }
