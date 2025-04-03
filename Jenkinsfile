@@ -35,12 +35,15 @@ pipeline {
                             sleep 5
                         """
                         
-                        // Install test dependencies
-                        sh 'pip install requests'
+                        // Install test dependencies inside the container's virtual environment
+                        sh """
+                            docker exec flask-test-${IMAGE_TAG} /bin/bash -c "python3 -m venv /app/venv"
+                            docker exec flask-test-${IMAGE_TAG} /bin/bash -c "source /app/venv/bin/activate && pip install requests"
+                        """
                         
                         // Run tests
                         def testExitCode = sh(
-                            script: "python test-server.py --url http://localhost:${TEST_PORT}",
+                            script: "docker exec flask-test-${IMAGE_TAG} /bin/bash -c 'source /app/venv/bin/activate && python test-server.py --url http://localhost:${TEST_PORT}'",
                             returnStatus: true
                         )
                         
