@@ -26,20 +26,20 @@ pipeline {
             }
         }
 
-        stage('Run Tests') {
-            steps {
-                script {
-                    echo "Running Test Script..."
-                    def testExitCode = sh(script: "python test-server.py", returnStatus: true)
-                    
-                    if (testExitCode == 0) {
-                        echo "Tests Passed ✅"
-                    } else {
-                        error("Tests Failed ❌")
-                    }
+            stage('Run Tests') {
+        steps {
+            script {
+                echo "Running Test Script inside the container..."
+                def testExitCode = sh(script: "docker exec ${CONTAINER_NAME} python test-server.py", returnStatus: true)
+    
+                if (testExitCode == 0) {
+                    echo "Tests Passed ✅"
+                } else {
+                    error("Tests Failed ❌")
                 }
             }
         }
+    }
 
         stage('Cleanup') {
             steps {
