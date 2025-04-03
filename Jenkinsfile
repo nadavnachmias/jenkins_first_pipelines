@@ -33,12 +33,20 @@ pipeline {
                             sleep 5
                         """
                         
+                        // Ensure the container is up before proceeding
+                        sh """
+                            while ! curl --silent --fail http://localhost:${TEST_PORT}; do
+                                echo "Waiting for Flask to start..."
+                                sleep 2
+                            done
+                        """
+                        
                         // Install test dependencies inside the virtual environment
                         sh """
                             docker exec flask-test-${IMAGE_TAG} /bin/bash -c 'source /app/venv/bin/activate && pip install requests'
                         """
                         
-                        // Run tests
+                        // Run tests inside the virtual environment
                         def testExitCode = sh(
                             script: "docker exec flask-test-${IMAGE_TAG} /bin/bash -c 'source /app/venv/bin/activate && python test-server.py --url http://localhost:${TEST_PORT}'",
                             returnStatus: true
@@ -66,7 +74,7 @@ pipeline {
             steps {
                 script {
                     // Login to Docker Hub
-                    withCredentials([usernamePassword(credentialsId: '19b96fb3-0b9e-47c3-8476-e14caf8cd544', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         sh """
                             echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin
                         """
@@ -84,6 +92,7 @@ pipeline {
 
     post {
         always {
+            // Cleanup unused Docker resources
             sh 'docker system prune -f || true'
         }
     }
