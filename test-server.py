@@ -3,9 +3,10 @@ import unittest
 import requests
 import argparse
 
-# Set up argument parsing
+# Set up argument parsing with environment variable fallback
 parser = argparse.ArgumentParser()
-parser.add_argument('--url', default='http://localhost:5000', help='Base URL of the Flask app')
+default_url = f"http://localhost:{os.getenv('APP_PORT', '5000')}"  # Use APP_PORT or default to 5000
+parser.add_argument('--url', default=default_url, help='Base URL of the Flask app')
 args = parser.parse_args()
 
 class TestFlaskEndpoints(unittest.TestCase):
