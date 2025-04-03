@@ -5,7 +5,7 @@ pipeline {
         IMAGE_TAG = "${env.BRANCH_NAME.toLowerCase().replaceAll('[^a-z0-9-]', '-')}"
         TEST_PORT = "5000" 
     }
-    
+    //hello
     stages {
         stage('Build Docker Image') {
             steps {
