@@ -1,26 +1,37 @@
-# Use a base Python image
-FROM python:3.9-slim AS base
+# Use official Python image
+FROM python:3.9-slim
 
-# Set the working directory inside the container
+# Set working directory
 WORKDIR /app
 
-# Copy the requirements.txt file into the container
+# Install system dependencies (if any needed)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends gcc python3-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Create and activate virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Install Python dependencies
 COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Install dependencies in a virtual environment
-RUN python3 -m venv /app/venv && \
-    /app/venv/bin/pip install --no-cache-dir -r requirements.txt
-
-# Copy the rest of your application code into the container
+# Copy application code
 COPY . .
 
-# Set environment variables for Flask
+# Set Flask environment variables
 ENV FLASK_APP=server.py
 ENV FLASK_ENV=production
-ENV PATH="/app/venv/bin:$PATH"
+ENV FLASK_RUN_HOST=0.0.0.0
+ENV FLASK_RUN_PORT=5000
 
-# Expose the port that the app will run on
+# Expose port
 EXPOSE 5000
 
-# Set the entrypoint to activate the virtual environment and run the Flask app
-CMD ["python", "server.py"]
+# Health check (optional but recommended)
+HEALTHCHECK --interval=30s --timeout=3s \
+  CMD curl -f http://localhost:5000/time || exit 1
+
+# Run application
+CMD ["flask", "run"]
