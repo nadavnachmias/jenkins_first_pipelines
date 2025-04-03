@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 import unittest
 import requests
+import argparse
 
-# Base URL where the Flask app is running (adjust if needed)
-BASE_URL = "http://localhost:5000"
+parser = argparse.ArgumentParser()
+parser.add_argument('--url', default='http://localhost:5000')
+args = parser.parse_args()
+
+BASE_URL = args.url
+
 
 class TestFlaskEndpoints(unittest.TestCase):
     """Basic tests for the Flask server endpoints."""
