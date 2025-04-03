@@ -2,9 +2,7 @@ pipeline {
     agent any
     
     environment {
-        // Clean branch name for Docker tag
         IMAGE_TAG = "${env.BRANCH_NAME.toLowerCase().replaceAll('[^a-z0-9-]', '-')}"
-        // Use a fixed port for testing
         TEST_PORT = "5000" 
     }
     
@@ -28,25 +26,23 @@ pipeline {
                                 -p ${TEST_PORT}:5000 \
                                 --name flask-test-${IMAGE_TAG} \
                                 your-repo/flask-app:${IMAGE_TAG}
-                            sleep 5  # Wait for server to start
+                            sleep 5
                         """
                         
                         // Install test dependencies
-                        sh 'pip install requests flask'  # Only dependency needed for testing
+                        sh 'pip install requests flask'
                         
-                        // Run tests and capture exit code
+                        // Run tests
                         def testExitCode = sh(
                             script: "python test-server.py --url http://localhost:${TEST_PORT}",
                             returnStatus: true
                         )
                         
-                        // Fail stage if tests failed
                         if (testExitCode != 0) {
                             error("Tests failed with exit code ${testExitCode}")
                         }
                         
                     } finally {
-                        // Always stop and remove container
                         sh """
                             docker stop flask-test-${IMAGE_TAG} || true
                             docker rm flask-test-${IMAGE_TAG} || true
@@ -59,7 +55,6 @@ pipeline {
     
     post {
         always {
-            // Cleanup Docker resources
             sh 'docker system prune -f || true'
         }
     }
