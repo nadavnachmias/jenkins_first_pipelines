@@ -68,7 +68,18 @@ pipeline {
                 }
             }
         }
+        stage ('test-run'){
+            steps {
+                script {
+                    echo "start testing stage use ${env.APP_PORT} as the port"
+                    
+                }
+                
+            }
+            
+        }
     }
+    
     
     post {
         always {
