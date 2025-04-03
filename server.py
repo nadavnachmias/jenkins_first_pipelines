@@ -21,4 +21,7 @@ def about_git_page():
     return "this is a feature for my brand new git branch"
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
+# Get port from environment variable or default to 5000
+    port = int(os.environ.get('PORT', 5000))
+    # Run with production settings
+    app.run(host='0.0.0.0', port=port)
