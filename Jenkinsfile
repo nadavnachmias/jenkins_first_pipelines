@@ -33,11 +33,14 @@ pipeline {
                             sleep 5
                         """
                         
-                        // Ensure the container is up before proceeding
+                        // Check container logs for Flask startup issues
+                        sh "docker logs flask-test-${IMAGE_TAG}"
+                        
+                        // Ensure Flask is accessible
                         sh """
                             while ! curl --silent --fail http://localhost:${TEST_PORT}; do
                                 echo "Waiting for Flask to start..."
-                                sleep 2
+                                sleep 5
                             done
                         """
                         
