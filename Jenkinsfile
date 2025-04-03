@@ -2,33 +2,44 @@ pipeline {
     agent any
     
     environment {
+        // Clean branch name for Docker tag
         IMAGE_TAG = "${env.BRANCH_NAME.toLowerCase().replaceAll('[^a-z0-9-]', '-')}"
-        // Get random available port
-        HOST_PORT = sh(script: "python -c 'import socket; s=socket.socket(); s.bind((\"\", 0)); print(s.getsockname()[1]); s.close()'", returnStdout: true).trim()
     }
     
     stages {
-        stage('Build') {
+        stage('Build Docker Image') {
             steps {
-                sh "docker build -t your-repo/flask-app:${IMAGE_TAG} ."
+                sh """
+                    docker build -t your-repo/flask-app:${IMAGE_TAG} .
+                    echo "Built image: your-repo/flask-app:${IMAGE_TAG}"
+                """
             }
         }
         
         stage('Test') {
             steps {
                 script {
-                    // Run container with dynamic port
-                    sh """
-                        docker run -d -p ${HOST_PORT}:5000 --name flask-test-${IMAGE_TAG} your-repo/flask-app:${IMAGE_TAG}
-                        sleep 5  # Wait for server to start
+                    // Install test dependencies
+                    sh 'pip install -r requirements.txt'
+                    
+                    try {
+                        // Start server in background
+                        sh 'python server.py &'
+                        sleep(time: 5, unit: 'SECONDS')
                         
-                        # Test with the dynamically assigned port
-                        python3 test_server.py --url http://localhost:${HOST_PORT}
+                        // Run tests
+                        def testResult = sh(
+                            script: 'python test-server.py',
+                            returnStatus: true
+                        )
                         
-                        # Cleanup
-                        docker stop flask-test-${IMAGE_TAG}
-                        docker rm flask-test-${IMAGE_TAG}
-                    """
+                        if (testResult != 0) {
+                            error("Tests failed with exit code ${testResult}")
+                        }
+                    } finally {
+                        // Stop server (works even if tests fail)
+                        sh 'pkill -f "python server.py" || true'
+                    }
                 }
             }
         }
@@ -36,8 +47,9 @@ pipeline {
     
     post {
         always {
-            sh "docker stop flask-test-${IMAGE_TAG} || true"
-            sh "docker rm flask-test-${IMAGE_TAG} || true"
+            // Clean up Docker and any remaining processes
+            sh 'docker system prune -f || true'
+            sh 'pkill -f "python server.py" || true'
         }
     }
 }
