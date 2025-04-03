@@ -1,5 +1,5 @@
 # Use a base Python image
-FROM python:3.9-slim
+FROM python:3.9-slim AS base
 
 # Set the working directory inside the container
 WORKDIR /app
@@ -17,9 +17,10 @@ COPY . .
 # Set environment variables for Flask
 ENV FLASK_APP=server.py
 ENV FLASK_ENV=production
+ENV PATH="/app/venv/bin:$PATH"
 
 # Expose the port that the app will run on
 EXPOSE 5000
 
 # Set the entrypoint to activate the virtual environment and run the Flask app
-CMD ["/app/venv/bin/python", "server.py"]
+CMD ["python", "server.py"]
