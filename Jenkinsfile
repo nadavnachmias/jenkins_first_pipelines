@@ -31,18 +31,18 @@ pipeline {
                     
                     while(port <= 5100) {
                         // Check if port is in use by any container
-                        def checkPort = sh(
-                            script: "docker ps --format '{{.Ports}}' | grep ':${port}->' || true",
-                            returnStatus: true
-                        )
+                        def dockerCheck = sh(
+                            script: "docker ps --format '{{.Ports}}' | grep -c ':${port}->' || true",
+                            returnStdout: true
+                        ).trim().toInteger()
                         
-                        // Also check if port is in use on host system
-                        def checkHostPort = sh(
-                            script: "netstat -tuln | grep ':${port} ' || true",
-                            returnStatus: true
-                        )
+                        // Check if port is in use on host system
+                        def hostCheck = sh(
+                            script: "netstat -tuln | grep -c ':${port} ' || true",
+                            returnStdout: true
+                        ).trim().toInteger()
                         
-                        if (checkPort != 0 && checkHostPort != 0) {
+                        if (dockerCheck == 0 && hostCheck == 0) {
                             foundPort = true
                             break
                         }
@@ -55,7 +55,7 @@ pipeline {
                     }
                     
                     // Run container with the found port
-                    // Note: Internal container port stays 5000, only external host port changes
+                    // Internal container port is 5000, external host port is dynamic
                     sh """
                         docker run -d \
                           -p ${port}:5000 \
