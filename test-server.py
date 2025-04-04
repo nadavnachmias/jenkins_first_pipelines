@@ -34,7 +34,7 @@ class TestFlaskEndpoints(unittest.TestCase):
         response = requests.get(f"{args.url}/about_git")
         print(response.text)
         self.assertEqual(response.status_code, 200)
-        self.assertIn("this is a feature for my brand new git branch222", response.text)
+        self.assertIn("this is a feature for my brand new git branch", response.text)
         print(f"✅ /about_git endpoint test passed (Port: {args.url.split(':')[-1]})")
 
 if __name__ == "__main__":
