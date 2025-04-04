@@ -57,11 +57,23 @@ pipeline {
                     // Run container with the found port
                     // Internal container port is 5000, external host port is dynamic
                     sh """
-                        docker run -d \
-                          -p ${port}:5000 \
-                          --name ${CONTAINER_NAME} \
-                          ${IMAGE_NAME}
-                    """
+                docker run -d \
+                  -p ${port}:5000 \  # Host:dynamic → Container:5000
+                  --name ${CONTAINER_NAME} \
+                  ${IMAGE_NAME}
+            """
+            env.APP_PORT = port
+            
+            // Wait for container to be healthy
+            sh """
+                for i in {1..10}; do
+                    if docker inspect --format='{{.State.Health.Status}}' ${CONTAINER_NAME} | grep -q healthy; then
+                        echo "Container ready"
+                        break
+                    fi
+                    sleep 3
+                done
+                """
                     
                     echo "Application running on host port ${port} (container port 5000)"
                     env.APP_PORT = port
