@@ -32,13 +32,13 @@ pipeline {
                     while(port <= 5100) {
                         // Check if port is in use by any container
                         def dockerCheck = sh(
-                            script: "docker ps --format '{{.Ports}}' | grep -c ':${port}->' || true",
+                            script: script: "docker ps --filter 'publish=${port}' --format '{{.ID}}' | wc -l",
                             returnStdout: true
                         ).trim().toInteger()
                         
                         // Check if port is in use on host system
                         def hostCheck = sh(
-                            script: "netstat -tuln | grep -c ':${port} ' || true",
+                            script: "lsof -i :${port} || true",
                             returnStdout: true
                         ).trim().toInteger()
                         
