@@ -29,6 +29,7 @@ pipeline {
                     def port = 5001
                     def foundPort = false
                     
+                    // Loop to find a free port
                     while (port <= 5100) {
                         def dockerCheck = sh(
                             script: "docker ps --format '{{.Ports}}' | grep -q ':${port}->' && echo 'used' || echo 'free'",
@@ -40,11 +41,12 @@ pipeline {
                             returnStdout: true
                         ).trim()
 
+                        // Check if the port is free
                         if (dockerCheck == "free" && hostCheck == "free") {
                             foundPort = true
                             break
                         }
-
+                        
                         port++
                     }
                     
@@ -61,11 +63,32 @@ pipeline {
                     """
                     
                     env.APP_PORT = port
+            
+                    // Wait for container to be healthy
+                    def retries = 10
+                    def success = false
 
-                    // Sleep for 3 seconds to allow the container to start before moving on
-                    echo "Waiting for 3 seconds to ensure container has started"
-                    sleep 3
-                    
+                    // Simple sleep approach instead of healthcheck
+                    for (int i = 0; i < retries; i++) {
+                        echo "Waiting for the container to start..."
+                        sleep 3
+                        
+                        def containerStatus = sh(
+                            script: "docker inspect --format='{{.State.Status}}' ${CONTAINER_NAME} || echo 'stopped'",
+                            returnStdout: true
+                        ).trim()
+
+                        if (containerStatus == "running") {
+                            echo "Container is running"
+                            success = true
+                            break
+                        }
+                    }
+
+                    if (!success) {
+                        error("Container did not start in time")
+                    }
+
                     echo "Application running on host port ${port} (container port 5000)"
                 }
             }
