@@ -43,7 +43,7 @@ if __name__ == "__main__":
     # Capture the test result
     result = unittest.TestResult()
     
-    # Run tests
+    # Run tests!
     suite = unittest.defaultTestLoader.loadTestsFromTestCase(TestFlaskEndpoints)
     suite.run(result)
     
