@@ -31,6 +31,7 @@ class TestFlaskEndpoints(unittest.TestCase):
     def test_about_git_endpoint(self):
         """Test if /about_git returns the expected string."""
         response = requests.get(f"{args.url}/about_git")
+        print(response.text)
         self.assertEqual(response.status_code, 200)
         self.assertIn("this is a feature for my brand new git branch222", response.text)
         print(f"✅ /about_git endpoint test passed (Port: {args.url.split(':')[-1]})")
