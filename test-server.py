@@ -3,8 +3,9 @@ import unittest
 import requests
 import argparse
 import os
+import sys
 
-# Set up arguments parsing with environment variable fallback!!
+# Set up arguments parsing with environment variable fallback
 parser = argparse.ArgumentParser()
 default_url = f"http://localhost:{os.getenv('APP_PORT', '5000')}"  # Use APP_PORT or default to 5000
 parser.add_argument('--url', default=default_url, help='Base URL of the Flask app')
@@ -18,7 +19,7 @@ class TestFlaskEndpoints(unittest.TestCase):
         response = requests.get(f"{args.url}/time")
         self.assertEqual(response.status_code, 200)
         self.assertIn("Current time is:", response.text)
-        print("✅ /time endpoint test passed")
+        print(f"✅ /time endpoint test passed (Port: {args.url.split(':')[-1]})")
 
     def test_echo_endpoint(self):
         """Test if /echo returns the correct message."""
@@ -26,21 +27,26 @@ class TestFlaskEndpoints(unittest.TestCase):
         response = requests.get(f"{args.url}/echo/{test_message}")
         self.assertEqual(response.status_code, 200)
         self.assertIn(f"You said: {test_message}", response.text)
-        print("✅ /echo endpoint test passed")
+        print(f"✅ /echo endpoint test passed (Port: {args.url.split(':')[-1]})")
 
     def test_about_git_endpoint(self):
         """Test if /about_git returns the expected string."""
-        response = requests.get(f"{args.url}/about")
+        response = requests.get(f"{args.url}/about_git")
+        print(response.text)
         self.assertEqual(response.status_code, 200)
         self.assertIn("this is server num 1 welcome !", response.text)
-        print("✅ /about_git endpoint test passed")
+        print(f"✅ /about_git endpoint test passed (Port: {args.url.split(':')[-1]})")
 
 if __name__ == "__main__":
+    print(f"\n🔍 Testing server at: {args.url}")
     # Run tests and exit with status code (0=success, 1=failure)
     try:
         unittest.main(argv=[''], exit=False)
         print("\n🔥 All tests passed! Proceed to Jenkins automation stages.")
-        exit(0)
-    except Exception as e:
+        sys.exit(0)  # Success exit
+    except unittest.TestCase.failureException as e:
         print(f"\n❌ Tests failed: {e}")
-        exit(1)
+        sys.exit(1)  # Fail the script if a test fails (this will crash the pipeline)
+    except Exception as e:
+        print(f"\n❌ Unexpected error: {e}")
+        sys.exit(1)  # Any unexpected error will also fail the script and crash the pipeline
