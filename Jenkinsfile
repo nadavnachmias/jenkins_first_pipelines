@@ -21,7 +21,7 @@ pipeline {
         stage('Run Container') {
             steps {
                 script {
-                    // Clean up any existing container first
+                    // Clean up any existing container first!
                     sh """
                         docker stop ${CONTAINER_NAME} || true
                         docker rm ${CONTAINER_NAME} || true
