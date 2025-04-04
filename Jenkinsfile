@@ -32,7 +32,7 @@ pipeline {
                     while(port <= 5100) {
                         // Check if port is in use by any container
                         def dockerCheck = sh(
-                            script: script: "docker ps --filter 'publish=${port}' --format '{{.ID}}' | wc -l",
+                            script: "docker ps --filter 'publish=${port}' --format '{{.ID}}' | wc -l",
                             returnStdout: true
                         ).trim().toInteger()
                         
