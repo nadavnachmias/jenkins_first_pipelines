@@ -4,7 +4,7 @@ import requests
 import argparse
 import os
 
-# Set up arguments parsing with environment variable fallback!
+# Set up arguments parsing with environment variable fallback!!
 parser = argparse.ArgumentParser()
 default_url = f"http://localhost:{os.getenv('APP_PORT', '5000')}"  # Use APP_PORT or default to 5000
 parser.add_argument('--url', default=default_url, help='Base URL of the Flask app')
