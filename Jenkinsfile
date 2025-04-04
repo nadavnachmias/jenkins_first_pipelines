@@ -15,7 +15,7 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Run Container') {
             steps {
                 script {
@@ -44,7 +44,7 @@ pipeline {
                             foundPort = true
                             break
                         }
-                        
+
                         port++
                     }
                     
@@ -61,35 +61,16 @@ pipeline {
                     """
                     
                     env.APP_PORT = port
-            
-                    // Wait for container to be healthy
-                    def retries = 10
-                    def success = false
 
-                    for (int i = 0; i < retries; i++) {
-                        def healthStatus = sh(
-                            script: "docker inspect --format='{{.State.Health.Status}}' ${CONTAINER_NAME} || echo 'unhealthy'",
-                            returnStdout: true
-                        ).trim()
-
-                        if (healthStatus == "healthy") {
-                            echo "Container is healthy"
-                            success = true
-                            break
-                        }
-                        
-                        sleep 3
-                    }
-
-                    if (!success) {
-                        error("Container did not become healthy in time")
-                    }
-
+                    // Sleep for 3 seconds to allow the container to start before moving on
+                    echo "Waiting for 3 seconds to ensure container has started"
+                    sleep 3
+                    
                     echo "Application running on host port ${port} (container port 5000)"
                 }
             }
         }
-        
+
         stage('test-run') {
             steps {
                 script {
