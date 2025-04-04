@@ -27,42 +27,19 @@ pipeline {
                         docker rm ${CONTAINER_NAME} || true
                     """
                     
-                    // Clear any containers that are bound to ports 5001-5100
-                    echo "Cleaning up any existing containers bound to ports between 5001 and 5100"
-                    sh """
-                        for port in {5001..5100}; do
-                            docker ps --format '{{.Ports}}' | grep -q ':${port}->' && docker ps -q --filter "publish=${port}" | xargs -I {} docker stop {}
-                            docker ps -a --format '{{.Ports}}' | grep -q ':${port}->' && docker ps -a -q --filter "publish=${port}" | xargs -I {} docker rm {}
-                        done
-                    """
-                    
-                    // Find first available port starting from 5001
-                    def port = 5001
-                    def foundPort = false
-                    
-                    while (port <= 5100) {
-                        def dockerCheck = sh(
-                            script: "docker ps --format '{{.Ports}}' | grep -q ':${port}->' && echo 'used' || echo 'free'",
-                            returnStdout: true
-                        ).trim()
-
-                        def hostCheck = sh(
-                            script: "netstat -tuln | grep -q ':${port} ' && echo 'used' || echo 'free'",
-                            returnStdout: true
-                        ).trim()
-
-                        if (dockerCheck == "free" && hostCheck == "free") {
-                            foundPort = true
-                            break
+                    // Function to find the first available port between 5001 and 5100
+                    def findFreePort = { 
+                        for (int port = 5001; port <= 5100; port++) {
+                            def isPortFree = sh(script: "netstat -tuln | grep -q ':${port} ' || echo 'free'", returnStdout: true).trim()
+                            if (isPortFree == "free") {
+                                return port
+                            }
                         }
-                        
-                        port++
-                    }
-                    
-                    if (!foundPort) {
                         error("No available ports between 5001-5100")
                     }
-                    
+
+                    def port = findFreePort()
+
                     echo "Starting container on port ${port} (container port 5000)"
                     sh """
                         docker run -d \\
@@ -72,12 +49,11 @@ pipeline {
                     """
                     
                     env.APP_PORT = port
-            
+
                     // Wait for container to be healthy
                     def retries = 10
                     def success = false
 
-                    // Simple sleep approach instead of healthcheck
                     for (int i = 0; i < retries; i++) {
                         echo "Waiting for the container to start..."
                         sleep 3
