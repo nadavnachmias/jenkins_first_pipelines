@@ -84,7 +84,7 @@ pipeline {
                 script {
                     echo "Testing on port ${env.APP_PORT}"
                     
-                    // Add retries in case of temporary failures
+                    // Run the tests with retries in case of failure
                     def testSuccess = sh(
                         script: """
                             for i in {1..3}; do
@@ -99,17 +99,18 @@ pipeline {
                         returnStatus: true
                     )
 
+                    // If the tests fail, abort the pipeline by using the 'error' step
                     if (testSuccess != 0) {
-                        error("Tests failed after retries")
+                        error("Tests failed after retries")  // This will stop the pipeline with an error
                     }
-                    echo "Tests passed successfully!"
+                    echo "Tests passed successfully!"  // If tests pass, proceed
                 }
             }
         }
 
         stage('Push to Docker Hub') {
             when {
-                // Only push if tests pass
+                // Only push to Docker Hub if the tests passed
                 expression { return currentBuild.result == null || currentBuild.result == 'SUCCESS' }
             }
             steps {
@@ -139,6 +140,7 @@ pipeline {
 
     post {
         always {
+            // Cleanup the workspace after the build
             cleanWs()
         }
     }
