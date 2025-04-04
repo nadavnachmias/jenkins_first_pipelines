@@ -27,6 +27,15 @@ pipeline {
                         docker rm ${CONTAINER_NAME} || true
                     """
                     
+                    // Clear any containers that are bound to ports 5001-5100
+                    echo "Cleaning up any existing containers bound to ports between 5001 and 5100"
+                    sh """
+                        for port in {5001..5100}; do
+                            docker ps --format '{{.Ports}}' | grep -q ':${port}->' && docker ps -q --filter "publish=${port}" | xargs -I {} docker stop {}
+                            docker ps -a --format '{{.Ports}}' | grep -q ':${port}->' && docker ps -a -q --filter "publish=${port}" | xargs -I {} docker rm {}
+                        done
+                    """
+                    
                     // Find first available port starting from 5001
                     def port = 5001
                     def foundPort = false
