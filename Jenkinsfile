@@ -55,56 +55,53 @@ pipeline {
                     }
                     
                     // Run container with the found port
-                    // Internal container port is 5000, external host port is dynamic
+                    echo "Starting container on port ${port} (container port 5000)"
                     sh """
-                docker run -d \
-                  -p ${port}:5000 \  # Host:dynamic → Container:5000
-                  --name ${CONTAINER_NAME} \
-                  ${IMAGE_NAME}
-            """
-            env.APP_PORT = port
+                        docker run -d \\
+                          -p ${port}:5000 \\
+                          --name ${CONTAINER_NAME} \\
+                          ${IMAGE_NAME}
+                    """
+                    
+                    env.APP_PORT = port
             
-            // Wait for container to be healthy
-            sh """
-                for i in {1..10}; do
-                    if docker inspect --format='{{.State.Health.Status}}' ${CONTAINER_NAME} | grep -q healthy; then
-                        echo "Container ready"
-                        break
-                    fi
-                    sleep 3
-                done
-                """
+                    // Wait for container to be healthy
+                    sh """
+                        for i in {1..10}; do
+                            if docker inspect --format='{{.State.Health.Status}}' ${CONTAINER_NAME} | grep -q healthy; then
+                                echo "Container ready"
+                                break
+                            fi
+                            sleep 3
+                        done
+                    """
                     
                     echo "Application running on host port ${port} (container port 5000)"
-                    env.APP_PORT = port
                 }
             }
         }
-        stage ('test-run'){
+        
+        stage ('test-run') {
             steps {
                 script {
-                     echo "Testing on port ${env.APP_PORT}"
-            
-            // Add retries in case of temporary failures
-            sh """
-                for i in {1..3}; do
-                    if python3 test-server.py --url http://localhost:${env.APP_PORT}; then
-                        exit 0
-                    fi
-                    sleep 5
-                done
-                echo "Tests failed after 3 attempts"
-                exit 1
-            """
+                    echo "Testing on port ${env.APP_PORT}"
                     
+                    // Add retries in case of temporary failures
+                    sh """
+                        for i in {1..3}; do
+                            if python3 test-server.py --url http://localhost:${env.APP_PORT}; then
+                                exit 0
+                            fi
+                            sleep 5
+                        done
+                        echo "Tests failed after 3 attempts"
+                        exit 1
+                    """
                 }
-                
             }
-            
         }
     }
-    
-    
+
     post {
         always {
             cleanWs()
