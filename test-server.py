@@ -3,6 +3,7 @@ import unittest
 import requests
 import argparse
 import os
+import sys
 
 # Set up arguments parsing with environment variable fallback
 parser = argparse.ArgumentParser()
@@ -42,7 +43,10 @@ if __name__ == "__main__":
     try:
         unittest.main(argv=[''], exit=False)
         print("\n🔥 All tests passed! Proceed to Jenkins automation stages.")
-        exit(0)
-    except Exception as e:
+        sys.exit(0)  # Success exit
+    except unittest.TestCase.failureException as e:
         print(f"\n❌ Tests failed: {e}")
-        exit(1)
+        sys.exit(1)  # Fail the script if a test fails (this will crash the pipeline)
+    except Exception as e:
+        print(f"\n❌ Unexpected error: {e}")
+        sys.exit(1)  # Any unexpected error will also fail the script and crash the pipeline
