@@ -30,23 +30,17 @@ pipeline {
                     def foundPort = false
                     
                     while (port <= 5100) {
-                        // Check if port is in use by any container
                         def dockerCheck = sh(
-                            script: "docker ps --filter 'publish=${port}' --format '{{.ID}}' | wc -l || echo 0",
+                            script: "docker ps --format '{{.Ports}}' | grep -q ':${port}->' && echo 'used' || echo 'free'",
                             returnStdout: true
                         ).trim()
-                        
-                        dockerCheck = dockerCheck.isInteger() ? dockerCheck.toInteger() : 0
 
-                        // Check if port is in use on host system
                         def hostCheck = sh(
-                            script: "lsof -i :${port} 2>/dev/null | wc -l || echo 0",
+                            script: "netstat -tuln | grep -q ':${port} ' && echo 'used' || echo 'free'",
                             returnStdout: true
                         ).trim()
-                        
-                        hostCheck = hostCheck.isInteger() ? hostCheck.toInteger() : 0
 
-                        if (dockerCheck == 0 && hostCheck == 0) {
+                        if (dockerCheck == "free" && hostCheck == "free") {
                             foundPort = true
                             break
                         }
@@ -58,7 +52,6 @@ pipeline {
                         error("No available ports between 5001-5100")
                     }
                     
-                    // Run container with the found port
                     echo "Starting container on port ${port} (container port 5000)"
                     sh """
                         docker run -d \\
