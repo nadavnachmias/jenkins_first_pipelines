@@ -83,9 +83,19 @@ pipeline {
         stage ('test-run'){
             steps {
                 script {
-                    echo "start testing stage use ${env.APP_PORT} as the port"
-                    //  explicitly pass the port:
-                    sh "python3 test-server.py --url http://localhost:${env.APP_PORT}"
+                     echo "Testing on port ${env.APP_PORT}"
+            
+            // Add retries in case of temporary failures
+            sh """
+                for i in {1..3}; do
+                    if python3 test-server.py --url http://localhost:${env.APP_PORT}; then
+                        exit 0
+                    fi
+                    sleep 5
+                done
+                echo "Tests failed after 3 attempts"
+                exit 1
+            """
                     
                 }
                 
