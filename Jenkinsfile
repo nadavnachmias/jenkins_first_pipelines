@@ -26,11 +26,12 @@ pipeline {
                         docker stop ${CONTAINER_NAME} || true
                         docker rm ${CONTAINER_NAME} || true
                     """
-                    
+
                     // Function to find the first available port between 5001 and 5100
                     def findFreePort = { 
                         for (int port = 5001; port <= 5100; port++) {
-                            def isPortFree = sh(script: "netstat -tuln | grep -q ':${port} ' || echo 'free'", returnStdout: true).trim()
+                            def isPortFree = sh(script: "netstat -tuln | grep ':${port} ' || echo 'free'", returnStdout: true).trim()
+                            echo "Checking port ${port}: ${isPortFree}"  // Debugging output
                             if (isPortFree == "free") {
                                 return port
                             }
