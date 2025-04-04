@@ -4,6 +4,8 @@ pipeline {
     environment {
         IMAGE_NAME = "flask-app-${env.BRANCH_NAME}".replaceAll("[^a-zA-Z0-9-]", "-").toLowerCase()
         CONTAINER_NAME = "flask-container-${env.BRANCH_NAME}".replaceAll("[^a-zA-Z0-9-]", "-").toLowerCase()
+        DOCKER_REGISTRY = "docker.io"  // Use docker.io (Docker Hub) or your custom registry
+        DOCKER_REPO = "nadavnachmias/flask-app"  // Your Docker Hub repository
     }
 
     stages {
@@ -29,7 +31,6 @@ pipeline {
                     def port = 5001
                     def foundPort = false
                     
-                    // Loop to find a free port
                     while (port <= 5100) {
                         def dockerCheck = sh(
                             script: "docker ps --format '{{.Ports}}' | grep -q ':${port}->' && echo 'used' || echo 'free'",
@@ -41,7 +42,6 @@ pipeline {
                             returnStdout: true
                         ).trim()
 
-                        // Check if the port is free
                         if (dockerCheck == "free" && hostCheck == "free") {
                             foundPort = true
                             break
@@ -117,6 +117,36 @@ pipeline {
                     if (testSuccess != 0) {
                         error("Tests failed after retries")
                     }
+                    echo "Tests passed successfully!"
+                }
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            when {
+                // Only push if tests pass
+                expression { return currentBuild.result == null || currentBuild.result == 'SUCCESS' }
+            }
+            steps {
+                script {
+                    echo "Pushing Docker image ${DOCKER_REPO}:${env.BRANCH_NAME}"
+
+                    // Login to Docker Hub using the credentials ID
+                    withCredentials([usernamePassword(credentialsId: '19b96fb3-0b9e-47c3-8476-e14caf8cd544', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        sh """
+                            echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin
+                        """
+                    }
+                    
+                    // Tag the image with the Docker Hub repository name
+                    sh """
+                        docker tag ${IMAGE_NAME} ${DOCKER_REGISTRY}/${DOCKER_REPO}:${env.BRANCH_NAME}
+                    """
+                    
+                    // Push the image to Docker Hub
+                    sh """
+                        docker push ${DOCKER_REGISTRY}/${DOCKER_REPO}:${env.BRANCH_NAME}
+                    """
                 }
             }
         }
