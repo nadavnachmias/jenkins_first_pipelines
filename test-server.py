@@ -39,14 +39,18 @@ class TestFlaskEndpoints(unittest.TestCase):
 
 if __name__ == "__main__":
     print(f"\n🔍 Testing server at: {args.url}")
-    # Run tests and exit with status code (0=success, 1=failure)
-    try:
-        unittest.main(argv=[''], exit=False)
+    
+    # Capture the test result
+    result = unittest.TestResult()
+    
+    # Run tests
+    suite = unittest.defaultTestLoader.loadTestsFromTestCase(TestFlaskEndpoints)
+    suite.run(result)
+    
+    # Check if any tests failed
+    if result.wasSuccessful():
         print("\n🔥 All tests passed! Proceed to Jenkins automation stages.")
         sys.exit(0)  # Success exit
-    except unittest.TestCase.failureException as e:
-        print(f"\n❌ Tests failed: {e}")
-        sys.exit(1)  # Fail the script if a test fails (this will crash the pipeline)
-    except Exception as e:
-        print(f"\n❌ Unexpected error: {e}")
-        sys.exit(1)  # Any unexpected error will also fail the script and crash the pipeline
+    else:
+        print(f"\n❌ Tests failed: {result}")
+        sys.exit(1)  # Fail the script if tests fail (this will crash the pipeline)
