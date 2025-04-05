@@ -40,7 +40,7 @@ pipeline {
 
                     def port = findFreePort()
 
-                    echo "Starting container on port ${port} (container port 5000)"
+                    echo "Startingg container on port ${port} (container port 5000)"
                     sh """
                         docker run -d \\
                           -p ${port}:5000 \\
