@@ -4,8 +4,9 @@ pipeline {
     environment {
         IMAGE_NAME = "flask-app-${env.BRANCH_NAME}".replaceAll("[^a-zA-Z0-9-]", "-").toLowerCase()
         CONTAINER_NAME = "flask-container-${env.BRANCH_NAME}".replaceAll("[^a-zA-Z0-9-]", "-").toLowerCase()
-        DOCKER_REGISTRY = "docker.io"  // Use docker.io (Docker Hub) or your custom registry
-        DOCKER_REPO = "nadavnachmias/flask-app"  // Your Docker Hub repository
+        DOCKER_REGISTRY = "docker.io"
+        DOCKER_REPO = "nadavnachmias/flask-app"
+        FULL_IMAGE_PATH = "docker.io/nadavnachmias/flask-app:${env.BRANCH_NAME}"
     }
 
     stages {
@@ -21,17 +22,15 @@ pipeline {
         stage('Run Container') {
             steps {
                 script {
-                    // Clean up any existing container first!
                     sh """
                         docker stop ${CONTAINER_NAME} || true
                         docker rm ${CONTAINER_NAME} || true
                     """
 
-                    // Function to find the first available port between 5001 and 5100
-                    def findFreePort = { 
+                    def findFreePort = {
                         for (int port = 5001; port <= 5100; port++) {
                             def isPortFree = sh(script: "netstat -tuln | grep ':${port} ' || echo 'free'", returnStdout: true).trim()
-                            echo "Checking port ${port}: ${isPortFree}"  // Debugging output
+                            echo "Checking port ${port}: ${isPortFree}"
                             if (isPortFree == "free") {
                                 return port
                             }
@@ -51,7 +50,6 @@ pipeline {
                     
                     env.APP_PORT = port
 
-                    // Wait for container to be healthy
                     def retries = 10
                     def success = false
 
@@ -85,7 +83,6 @@ pipeline {
                 script {
                     echo "Testing on port ${env.APP_PORT}"
                     
-                    // Run the tests with retries in case of failure
                     def testSuccess = sh(
                         script: """
                             for i in {1..3}; do
@@ -100,39 +97,51 @@ pipeline {
                         returnStatus: true
                     )
 
-                    // If the tests fail, abort the pipeline by using the 'error' step
                     if (testSuccess != 0) {
-                        error("Tests failed after retries")  // This will stop the pipeline with an error
+                        error("Tests failed after retries")
                     }
-                    echo "Tests passed successfully!"  // If tests pass, proceed
+                    echo "Tests passed successfully!"
                 }
             }
         }
 
         stage('Push to Docker Hub') {
             when {
-                // Only push to Docker Hub if the tests passed
                 expression { return currentBuild.result == null || currentBuild.result == 'SUCCESS' }
             }
             steps {
                 script {
                     echo "Pushing Docker image ${DOCKER_REPO}:${env.BRANCH_NAME}"
 
-                    // Login to Docker Hub using the credentials ID
                     withCredentials([usernamePassword(credentialsId: '19b96fb3-0b9e-47c3-8476-e14caf8cd544', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                         sh """
                             echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin
                         """
                     }
                     
-                    // Tag the image with the Docker Hub repository name
                     sh """
-                        docker tag ${IMAGE_NAME} ${DOCKER_REGISTRY}/${DOCKER_REPO}:${env.BRANCH_NAME}
+                        docker tag ${IMAGE_NAME} ${FULL_IMAGE_PATH}
+                        docker push ${FULL_IMAGE_PATH}
                     """
-                    
-                    // Push the image to Docker Hub
+                }
+            }
+        }
+
+        stage('Deploy to OpenShift') {
+            steps {
+                script {
                     sh """
-                        docker push ${DOCKER_REGISTRY}/${DOCKER_REPO}:${env.BRANCH_NAME}
+                    echo 'Logging into OpenShift...'
+                    oc login --token=sha256~JVNd6v2Io7DnUVomWg4Sc8-kbGVvWYbC-pjfVMC3yMk --server=https://api.rm1.0a51.p1.openshiftapps.com:6443 --insecure-skip-tls-verify=true
+
+                    echo 'Switching to project...'
+                    oc project nadav2341-dev
+
+                    echo 'Setting new image: ${FULL_IMAGE_PATH}'
+                    oc set image deployment/my-flask-deployment flask=${FULL_IMAGE_PATH}
+
+                    echo 'Restarting deployment to apply new image...'
+                    oc rollout restart deployment/my-flask-deployment
                     """
                 }
             }
@@ -141,7 +150,6 @@ pipeline {
 
     post {
         always {
-            // Cleanup the workspace after the build
             cleanWs()
         }
     }
