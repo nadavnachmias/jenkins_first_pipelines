@@ -7,6 +7,10 @@ pipeline {
         DOCKER_REGISTRY = "docker.io"
         DOCKER_REPO = "nadavnachmias/flask-app"
         FULL_IMAGE_PATH = "docker.io/nadavnachmias/flask-app:${env.BRANCH_NAME}"
+        DEPLOYMENT_NAME = "flask-${env.BRANCH_NAME}".replaceAll("[^a-zA-Z0-9-]", "-").toLowerCase()
+        SERVICE_NAME = "svc-${env.BRANCH_NAME}".replaceAll("[^a-zA-Z0-9-]", "-").toLowerCase()
+        ROUTE_NAME = "route-${env.BRANCH_NAME}".replaceAll("[^a-zA-Z0-9-]", "-").toLowerCase()
+
     }
 
     stages {
