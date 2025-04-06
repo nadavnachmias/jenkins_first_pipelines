@@ -18,7 +18,7 @@ pipeline {
             steps {
                 script {
                     echo "🔨 Building Docker Image: ${FULL_IMAGE_PATH}"
-                    sh "docker build --no-cache -t ${FULL_IMAGE_PATH} ."
+                    sh "docker build -t ${FULL_IMAGE_PATH} ."
                 }
             }
         }
