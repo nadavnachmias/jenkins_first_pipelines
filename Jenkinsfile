@@ -7,6 +7,8 @@ pipeline {
         DOCKER_REGISTRY = "docker.io"
         DOCKER_REPO = "nadavnachmias/flask-app"
         FULL_IMAGE_PATH = "docker.io/nadavnachmias/flask-app:${env.BRANCH_NAME}"
+        DEPLOYMENT_NAME = "flask-deploy-${env.BRANCH_NAME}".replaceAll("[^a-zA-Z0-9-]", "-").toLowerCase()
+
     }
 
     stages {
@@ -132,16 +134,22 @@ pipeline {
                 script {
                     sh """
                     echo 'Logging into OpenShift...'
-                    oc login --token=sha256~JVNd6v2Io7DnUVomWg4Sc8-kbGVvWYbC-pjfVMC3yMk --server=https://api.rm1.0a51.p1.openshiftapps.com:6443 --insecure-skip-tls-verify=true
-
+                    oc login --token=sha256~YOUR_TOKEN --server=https://api.rm1.0a51.p1.openshiftapps.com:6443 --insecure-skip-tls-verify=true
+        
                     echo 'Switching to project...'
                     oc project nadav2341-dev
-
-                    echo 'Setting new image: ${FULL_IMAGE_PATH}'
-                    oc set image deployment/my-flask-deployment flask=${FULL_IMAGE_PATH}
-
-                    echo 'Restarting deployment to apply new image...'
-                    oc rollout restart deployment/my-flask-deployment
+        
+                    echo 'Checking if deployment exists...'
+                    if ! oc get deployment/${DEPLOYMENT_NAME}; then
+                      echo 'Creating deployment ${DEPLOYMENT_NAME}...'
+                      oc create deployment ${DEPLOYMENT_NAME} --image=${FULL_IMAGE_PATH} --port=5000
+                      oc expose deployment ${DEPLOYMENT_NAME} --port=5000
+                      oc expose svc/${DEPLOYMENT_NAME}
+                    else
+                      echo 'Deployment exists. Updating image...'
+                      oc set image deployment/${DEPLOYMENT_NAME} flask=${FULL_IMAGE_PATH}
+                      oc rollout restart deployment/${DEPLOYMENT_NAME}
+                    fi
                     """
                 }
             }
