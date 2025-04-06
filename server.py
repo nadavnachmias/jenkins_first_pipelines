@@ -6,7 +6,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def hello():
-    return "Flask app is working on OpenShift! 🎉"
+    return "Flask app is working on OpenShift! 🎉", 200
 
 # Endpoint 1: Get current time
 @app.route('/time')
