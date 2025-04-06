@@ -149,7 +149,7 @@ pipeline {
                           oc expose svc/${SERVICE_NAME} --name=${ROUTE_NAME}
                         else
                           echo 'Deployment exists. Updating image...'
-                          oc set image deployment/${DEPLOYMENT_NAME} flask-app=${FULL_IMAGE_PATH}
+                          oc set image deployment/${DEPLOYMENT_NAME} ${DEPLOYMENT_NAME}=${FULL_IMAGE_PATH}
                           oc rollout restart deployment/${DEPLOYMENT_NAME}
                         fi
                         """
