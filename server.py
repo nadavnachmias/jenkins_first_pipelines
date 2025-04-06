@@ -5,7 +5,7 @@ from datetime import datetime
 app = Flask(__name__)
 @app.route("/")
 def hello():
-    return "Flask app is working on OpenShift! 🎉", 200
+    return "Flask app is working on OpenShift1! 🎉", 200
 
 # Endpoint 1: Get current time
 @app.route('/time')
