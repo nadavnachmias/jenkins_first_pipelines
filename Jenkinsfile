@@ -130,19 +130,25 @@ pipeline {
         stage('Deploy to OpenShift') {
             steps {
                 script {
-                    sh """
-                    echo 'Logging into OpenShift...'
-                    oc login --token=sha256~74v_zFctW2ZmN9DDl1tCG44ns65lGt-9XjRqGD3zSY8 --server=https://api.rm1.0a51.p1.openshiftapps.com:6443
-
-                    echo 'Switching to project...'
-                    oc project nadav2341-dev
-
-                    echo 'Setting new image: ${FULL_IMAGE_PATH}'
-                    oc set image deployment/my-flask-deployment flask=${FULL_IMAGE_PATH}
-
-                    echo 'Restarting deployment to apply new image...'
-                    oc rollout restart deployment/my-flask-deployment
-                    """
+                        sh """
+                        echo 'Logging into OpenShift...'
+                        oc login --token=sha256~74v_zFctW2ZmN9DDl1tCG44ns65lGt-9XjRqGD3zSY8 --server=https://api.rm1.0a51.p1.openshiftapps.com:6443
+        
+                        echo 'Switching to project...'
+                        oc project nadav2341-dev
+        
+                        echo 'Checking if deployment ${DEPLOYMENT_NAME} exists...'
+                        if ! oc get deployment/${DEPLOYMENT_NAME}; then
+                          echo 'Creating deployment ${DEPLOYMENT_NAME}...'
+                          oc create deployment ${DEPLOYMENT_NAME} --image=${FULL_IMAGE_PATH} --port=5000
+                          oc expose deployment ${DEPLOYMENT_NAME} --port=5000 --name=${SERVICE_NAME}
+                          oc expose svc/${SERVICE_NAME} --name=${ROUTE_NAME}
+                        else
+                          echo 'Deployment exists. Updating image...'
+                          oc set image deployment/${DEPLOYMENT_NAME} ${DEPLOYMENT_NAME}=${FULL_IMAGE_PATH}
+                          oc rollout restart deployment/${DEPLOYMENT_NAME}
+                        fi
+                        """
                 }
             }
         }
