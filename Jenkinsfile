@@ -132,7 +132,7 @@ pipeline {
                 script {
                     sh """
                     echo 'Logging into OpenShift...'
-                    oc login --token=sha256~JVNd6v2Io7DnUVomWg4Sc8-kbGVvWYbC-pjfVMC3yMk --server=https://api.rm1.0a51.p1.openshiftapps.com:6443 --insecure-skip-tls-verify=true
+                    oc login --token=sha256~74v_zFctW2ZmN9DDl1tCG44ns65lGt-9XjRqGD3zSY8 --server=https://api.rm1.0a51.p1.openshiftapps.com:6443
 
                     echo 'Switching to project...'
                     oc project nadav2341-dev
