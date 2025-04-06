@@ -137,21 +137,15 @@ pipeline {
                         sh """
                         echo 'Logging into OpenShift...'
                         oc login --token=sha256~74v_zFctW2ZmN9DDl1tCG44ns65lGt-9XjRqGD3zSY8 --server=https://api.rm1.0a51.p1.openshiftapps.com:6443
-            
+        
                         echo 'Switching to project...'
                         oc project nadav2341-dev
-            
+        
                         echo 'Checking if deployment ${DEPLOYMENT_NAME} exists...'
                         if ! oc get deployment/${DEPLOYMENT_NAME}; then
                           echo 'Creating deployment ${DEPLOYMENT_NAME}...'
                           oc create deployment ${DEPLOYMENT_NAME} --image=${FULL_IMAGE_PATH} --port=5000
-            
-                          echo 'Patching container port...'
-                          oc patch deployment/${DEPLOYMENT_NAME} --type='json' -p '[{"op": "add", "path": "/spec/template/spec/containers/0/ports", "value": [{"containerPort": 5000, "name": "web"}]}]'
-            
-                          echo 'Creating service and route...'
                           oc expose deployment ${DEPLOYMENT_NAME} --port=5000 --name=${SERVICE_NAME}
-                          oc patch svc/${SERVICE_NAME} -p '{"spec":{"ports":[{"port":5000,"targetPort":5000,"protocol":"TCP","name":"web"}]}}'
                           oc expose svc/${SERVICE_NAME} --name=${ROUTE_NAME}
                         else
                           echo 'Deployment exists. Updating image...'
