@@ -18,7 +18,7 @@ pipeline {
             steps {
                 script {
                     echo "Building Docker Image: ${IMAGE_NAME}"
-                    sh "docker build -t ${IMAGE_NAME} ."
+                    sh "docker build --no-cache -t ${IMAGE_NAME}"
                 }
             }
         }
