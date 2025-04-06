@@ -108,4 +108,48 @@ pipeline {
             steps {
                 script {
                     echo "📦 Pushing Docker image: ${FULL_IMAGE_PATH}"
-                    withCredentials([usernamePassword(credentialsId: '19b96fb3-0b9e-47c3-8476-e14caf8cd544', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DO_
+                    withCredentials([usernamePassword(credentialsId: '19b96fb3-0b9e-47c3-8476-e14caf8cd544', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        sh """
+                            echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin
+                            docker push ${FULL_IMAGE_PATH}
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to OpenShift') {
+            steps {
+                script {
+                    sh """
+                    echo '🔐 Logging into OpenShift...'
+                    oc login --token=sha256~74v_zFctW2ZmN9DDl1tCG44ns65lGt-9XjRqGD3zSY8 --server=https://api.rm1.0a51.p1.openshiftapps.com:6443 --insecure-skip-tls-verify=true
+
+                    echo '🔄 Switching to project...'
+                    oc project nadav2341-dev
+
+                    echo '🔎 Checking if deployment ${DEPLOYMENT_NAME} exists...'
+                    if ! oc get deployment/${DEPLOYMENT_NAME}; then
+                        echo '📦 Creating new deployment...'
+                        oc create deployment ${DEPLOYMENT_NAME} --image=${FULL_IMAGE_PATH} --port=5000
+                        oc patch deployment/${DEPLOYMENT_NAME} --type='json' -p '[{"op": "add", "path": "/spec/template/spec/containers/0/ports", "value": [{"containerPort": 5000, "name": "web"}]}]'
+                        oc expose deployment ${DEPLOYMENT_NAME} --port=5000 --name=${SERVICE_NAME}
+                        oc patch svc/${SERVICE_NAME} -p '{"spec":{"ports":[{"port":5000,"targetPort":5000,"protocol":"TCP","name":"web"}]}}'
+                        oc expose svc/${SERVICE_NAME} --name=${ROUTE_NAME}
+                    else
+                        echo '🛠 Updating existing deployment...'
+                        oc set image deployment/${DEPLOYMENT_NAME} flask-app=${FULL_IMAGE_PATH}
+                        oc rollout restart deployment/${DEPLOYMENT_NAME}
+                    fi
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+    }
+}
